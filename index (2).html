@@ -1,0 +1,544 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>오늘 뭐 입지? - 날씨별 옷차림 추천</title>
+  <style>
+    :root {
+      --bg-sunny: linear-gradient(135deg, #fce38a 0%, #f38181 100%);
+      --bg-cloudy: linear-gradient(135deg, #d7d2cc 0%, #304352 100%);
+      --bg-rainy: linear-gradient(135deg, #667db6 0%, #0082c8 50%, #0082c8 100%);
+      --bg-snowy: linear-gradient(135deg, #e6dada 0%, #274046 100%);
+      --card-bg: rgba(255, 255, 255, 0.85);
+      --text-main: #2d3748;
+      --accent: #4a5568;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Pretendard", "Segoe UI", Roboto, sans-serif;
+    }
+
+    body {
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 24px 16px;
+      color: var(--text-main);
+      background: var(--bg-sunny);
+      transition: background 0.6s ease;
+    }
+
+    body.weather-sunny { background: linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%); }
+    body.weather-cloudy { background: linear-gradient(135deg, #cfd9df 0%, #e2ebf0 100%); }
+    body.weather-rainy { background: linear-gradient(135deg, #74ebd5 0%, #9face6 100%); }
+    body.weather-snowy { background: linear-gradient(135deg, #e0eafc 0%, #cfdef3 100%); }
+
+    .app-container {
+      width: 100%;
+      max-width: 520px;
+      background: var(--card-bg);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border-radius: 28px;
+      padding: 30px 24px;
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.12);
+      border: 1px solid rgba(255, 255, 255, 0.6);
+    }
+
+    header {
+      text-align: center;
+      margin-bottom: 24px;
+    }
+
+    header h1 {
+      font-size: 1.6rem;
+      font-weight: 800;
+      color: #1a202c;
+      letter-spacing: -0.5px;
+    }
+
+    header p {
+      font-size: 0.9rem;
+      color: #718096;
+      margin-top: 6px;
+    }
+
+    .form-group {
+      margin-bottom: 20px;
+    }
+
+    label {
+      display: block;
+      font-size: 0.88rem;
+      font-weight: 700;
+      color: #4a5568;
+      margin-bottom: 8px;
+    }
+
+    .temp-inputs {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+
+    .input-box {
+      position: relative;
+    }
+
+    .input-box input {
+      width: 100%;
+      padding: 12px 14px;
+      border: 1.5px solid #e2e8f0;
+      border-radius: 14px;
+      font-size: 1rem;
+      background: #ffffff;
+      outline: none;
+      transition: all 0.2s;
+    }
+
+    .input-box input:focus {
+      border-color: #4f46e5;
+      box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.15);
+    }
+
+    .weather-options {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 8px;
+    }
+
+    .weather-btn {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 12px 6px;
+      border-radius: 16px;
+      border: 1.5px solid #edf2f7;
+      background: #ffffff;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: #4a5568;
+    }
+
+    .weather-btn .emoji {
+      font-size: 1.5rem;
+      margin-bottom: 4px;
+    }
+
+    .weather-btn.active {
+      border-color: #4f46e5;
+      background: #eef2ff;
+      color: #4338ca;
+      box-shadow: 0 4px 12px rgba(79, 70, 229, 0.18);
+      transform: translateY(-2px);
+    }
+
+    .submit-btn {
+      width: 100%;
+      padding: 14px;
+      border: none;
+      border-radius: 16px;
+      background: linear-gradient(135deg, #4f46e5 0%, #6366f1 100%);
+      color: white;
+      font-size: 1rem;
+      font-weight: 700;
+      cursor: pointer;
+      box-shadow: 0 8px 16px rgba(79, 70, 229, 0.25);
+      transition: all 0.2s;
+      margin-top: 4px;
+    }
+
+    .submit-btn:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 10px 20px rgba(79, 70, 229, 0.35);
+    }
+
+    /* 알림 배너 */
+    .alerts {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      margin-top: 20px;
+    }
+
+    .alert-card {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px 16px;
+      border-radius: 14px;
+      font-size: 0.9rem;
+      font-weight: 600;
+      animation: slideDown 0.3s ease;
+    }
+
+    .alert-temp-diff {
+      background: #fef3c7;
+      color: #92400e;
+      border: 1px solid #fde68a;
+    }
+
+    .alert-rain {
+      background: #e0f2fe;
+      color: #075985;
+      border: 1px solid #bae6fd;
+    }
+
+    .shaking-umbrella {
+      display: inline-block;
+      font-size: 1.4rem;
+      animation: shake 1s infinite ease-in-out;
+      transform-origin: 50% 100%;
+    }
+
+    @keyframes shake {
+      0%, 100% { transform: rotate(0deg); }
+      20% { transform: rotate(-15deg); }
+      40% { transform: rotate(15deg); }
+      60% { transform: rotate(-10deg); }
+      80% { transform: rotate(10deg); }
+    }
+
+    @keyframes slideDown {
+      from { opacity: 0; transform: translateY(-8px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* 옷차림 추천 카드 영역 */
+    .outfit-section {
+      margin-top: 24px;
+      border-top: 1px dashed #cbd5e1;
+      padding-top: 20px;
+    }
+
+    .section-title {
+      font-size: 1rem;
+      font-weight: 700;
+      margin-bottom: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      color: #334155;
+    }
+
+    .temp-badge {
+      font-size: 0.78rem;
+      padding: 4px 10px;
+      background: #e2e8f0;
+      border-radius: 20px;
+      font-weight: 600;
+      color: #475569;
+    }
+
+    .cards-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 12px;
+    }
+
+    .outfit-card {
+      background: #ffffff;
+      border-radius: 18px;
+      padding: 16px 14px;
+      border: 1px solid #f1f5f9;
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.03);
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      transition: transform 0.2s;
+    }
+
+    .outfit-card:hover {
+      transform: translateY(-2px);
+    }
+
+    .card-top {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .card-emoji {
+      font-size: 1.8rem;
+    }
+
+    .card-category {
+      font-size: 0.78rem;
+      font-weight: 700;
+      color: #64748b;
+      text-transform: uppercase;
+    }
+
+    .card-items {
+      font-size: 0.95rem;
+      font-weight: 700;
+      color: #1e293b;
+      line-height: 1.4;
+    }
+
+    .card-desc {
+      font-size: 0.8rem;
+      color: #64748b;
+    }
+
+    footer {
+      margin-top: 24px;
+      text-align: center;
+      font-size: 0.75rem;
+      color: #94a3b8;
+    }
+  </style>
+</head>
+<body class="weather-sunny">
+  <div class="app-container">
+    <header>
+      <h1>오늘 뭐 입지? 👕</h1>
+      <p>날씨와 기온에 딱 맞는 최적의 옷차림을 찾아드려요</p>
+    </header>
+
+    <div class="form-group">
+      <label>기온 설정 (°C)</label>
+      <div class="temp-inputs">
+        <div class="input-box">
+          <input type="number" id="minTemp" placeholder="최저 기온" value="12" />
+        </div>
+        <div class="input-box">
+          <input type="number" id="maxTemp" placeholder="최고 기온" value="23" />
+        </div>
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label>오늘의 날씨</label>
+      <div class="weather-options">
+        <button type="button" class="weather-btn active" data-weather="sunny">
+          <span class="emoji">☀️</span>
+          <span>맑음</span>
+        </button>
+        <button type="button" class="weather-btn" data-weather="cloudy">
+          <span class="emoji">☁️</span>
+          <span>흐림</span>
+        </button>
+        <button type="button" class="weather-btn" data-weather="rainy">
+          <span class="emoji">🌧️</span>
+          <span>비</span>
+        </button>
+        <button type="button" class="weather-btn" data-weather="snowy">
+          <span class="emoji">❄️</span>
+          <span>눈</span>
+        </button>
+      </div>
+    </div>
+
+    <button type="button" class="submit-btn" id="recommendBtn">옷차림 추천받기 ✨</button>
+
+    <!-- 알림 메시지 영역 -->
+    <div class="alerts" id="alertsArea"></div>
+
+    <!-- 추천 옷차림 카드 영역 -->
+    <section class="outfit-section" id="outfitSection">
+      <div class="section-title">
+        <span>추천 코디 리스트</span>
+        <span class="temp-badge" id="avgBadge">평균 기온 17.5°C 기준</span>
+      </div>
+
+      <div class="cards-grid" id="cardsGrid">
+        <!-- JS로 동적 렌더링 -->
+      </div>
+    </section>
+
+    <footer>
+      © 날씨별 옷차림 추천 | GitHub Pages Ready
+    </footer>
+  </div>
+
+  <script>
+    let selectedWeather = 'sunny';
+
+    // 날씨 버튼 클릭 이벤트
+    const weatherButtons = document.querySelectorAll('.weather-btn');
+    weatherButtons.forEach(btn => {
+      btn.addEventListener('click', () => {
+        weatherButtons.forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        selectedWeather = btn.dataset.weather;
+        updateBackground(selectedWeather);
+        generateRecommendation();
+      });
+    });
+
+    // 배경 테마 전환
+    function updateBackground(weather) {
+      document.body.className = `weather-${weather}`;
+    }
+
+    // 추천 생성 버튼
+    document.getElementById('recommendBtn').addEventListener('click', generateRecommendation);
+
+    // 기온 구간별 옷차림 데이터 정의
+    function getOutfitByTemp(avgTemp) {
+      if (avgTemp >= 28) {
+        return {
+          range: '28°C 이상 (한여름)',
+          top: { emoji: '🎽', name: '민소매 / 반팔 티셔츠', desc: '린넨, 통풍 잘되는 소재' },
+          bottom: { emoji: '🩳', name: '반바지 / 린넨 스커트', desc: '가볍고 시원한 쿨소재' },
+          outer: { emoji: '🕶️', name: '겉옷 생략 / 양산·모자', desc: '햇볕 차단용 선글라스 추천' },
+          shoes: { emoji: '🩴', name: '샌들 / 슬리퍼 / 쪼리', desc: '발에 땀 차지 않는 신발' }
+        };
+      } else if (avgTemp >= 23) {
+        return {
+          range: '23°C ~ 27°C (초여름/초가을)',
+          top: { emoji: '👕', name: '반팔 티셔츠 / 얇은 셔츠', desc: '흡한속건 티셔츠' },
+          bottom: { emoji: '👖', name: '면바지 / 얇은 슬랙스', desc: '가벼운 긴바지 또는 반바지' },
+          outer: { emoji: '🧣', name: '가벼운 실내용 카디건', desc: '에어컨 냉방 대비 얇은 셔츠' },
+          shoes: { emoji: '👟', name: '로퍼 / 가벼운 스니커즈', desc: '통풍 좋은 메쉬 운동화' }
+        };
+      } else if (avgTemp >= 20) {
+        return {
+          range: '20°C ~ 22°C (포근한 봄·가을)',
+          top: { emoji: '👔', name: '긴팔 티셔츠 / 셔츠 / 블라우스', desc: '단품으로 입기 좋은 두께' },
+          bottom: { emoji: '👖', name: '슬랙스 / 청바지 / 면바지', desc: '적당한 두께의 바지' },
+          outer: { emoji: '🧥', name: '얇은 카디건 / 니트 조끼', desc: '아침저녁 걸치기 좋은 외투' },
+          shoes: { emoji: '👟', name: '단화 / 캔버스화 / 운동화', desc: '어떤 착장에도 무난한 슈즈' }
+        };
+      } else if (avgTemp >= 17) {
+        return {
+          range: '17°C ~ 19°C (선선한 봄·가을)',
+          top: { emoji: '🧶', name: '니트 / 맨투맨 / 셔츠 레이어드', desc: '포근한 원단감' },
+          bottom: { emoji: '👖', name: '청바지 / 슬랙스', desc: '도톰한 데님 팬츠' },
+          outer: { emoji: '🧥', name: '바람막이 / 가벼운 자켓 / 카디건', desc: '외출 시 챙기기 좋은 외투' },
+          shoes: { emoji: '👞', name: '스니커즈 / 플랫슈즈', desc: '편안한 가죽 단화나 운동화' }
+        };
+      } else if (avgTemp >= 12) {
+        return {
+          range: '12°C ~ 16°C (쌀쌀한 환절기)',
+          top: { emoji: '🧶', name: '기모 맨투맨 / 도톰 니트', desc: '체온을 잡아주는 이너웨어' },
+          bottom: { emoji: '👖', name: '기모 슬랙스 / 두꺼운 청바지', desc: '바람을 막아주는 팬츠' },
+          outer: { emoji: '🧥', name: '자켓 / 가죽자켓 / 트렌치코트', desc: '환절기 대표 아우터' },
+          shoes: { emoji: '👢', name: '워커 / 앵클부츠 / 운동화', desc: '발목을 덮는 안정적인 신발' }
+        };
+      } else if (avgTemp >= 9) {
+        return {
+          range: '9°C ~ 11°C (초겨울)',
+          top: { emoji: '🧣', name: '목폴라 니트 / 발열 내의', desc: '히트텍 등 이너 레이어드' },
+          bottom: { emoji: '👖', name: '코듀로이(골덴) / 기모바지', desc: '보온성 높은 하의' },
+          outer: { emoji: '🧥', name: '트렌치코트 / 항공점퍼 / 두꺼운 코트', desc: '찬 공기를 막아주는 외투' },
+          shoes: { emoji: '👢', name: '앵클부츠 / 가죽 신발', desc: '발이 시리지 않은 두께' }
+        };
+      } else if (avgTemp >= 5) {
+        return {
+          range: '5°C ~ 8°C (겨울)',
+          top: { emoji: '🧶', name: '두꺼운 울니트 + 히트텍', desc: '단단히 겹쳐 입기' },
+          bottom: { emoji: '👖', name: '기모 데님 / 방한 바지', desc: '방풍 안감 팬츠' },
+          outer: { emoji: '🧥', name: '울코트 / 숏패딩 / 가죽퍼 자켓', desc: '방한 외투 필수' },
+          shoes: { emoji: '🥾', name: '방한화 / 가죽 부츠 / 두꺼운 양말', desc: '보온 양말과 함께 착용' }
+        };
+      } else {
+        return {
+          range: '4°C 이하 (한겨울 혹한기)',
+          top: { emoji: '🧤', name: '방한 터틀넥 + 발열 내의', desc: '목도리, 핫팩 필수 장착' },
+          bottom: { emoji: '👖', name: '방한 기모 팬츠 + 내복', desc: '바람 한 점 통하지 않게' },
+          outer: { emoji: '🧥', name: '롱패딩 / 헤비 다운 점퍼', desc: '최고 등급 방한 아우터' },
+          shoes: { emoji: '🥾', name: '방한 어그부츠 / 패딩 슈즈', desc: '미끄럼 방지 및 보온 필수' }
+        };
+      }
+    }
+
+    function generateRecommendation() {
+      const minTemp = parseFloat(document.getElementById('minTemp').value) || 0;
+      const maxTemp = parseFloat(document.getElementById('maxTemp').value) || 0;
+      const tempDiff = Math.abs(maxTemp - minTemp);
+      const avgTemp = (minTemp + maxTemp) / 2;
+
+      // 1. 알림 배너 갱신
+      const alertsArea = document.getElementById('alertsArea');
+      alertsArea.innerHTML = '';
+
+      // 일교차 알림 (10도 이상 차이 날 때)
+      if (tempDiff >= 10) {
+        const diffAlert = document.createElement('div');
+        diffAlert.className = 'alert-card alert-temp-diff';
+        diffAlert.innerHTML = `
+          <span>🌡️</span>
+          <span>일교차가 무려 <strong>${tempDiff.toFixed(1)}°C</strong> 납니다! 아침저녁 <strong>가벼운 겉옷</strong>을 꼭 챙기세요.</span>
+        `;
+        alertsArea.appendChild(diffAlert);
+      }
+
+      // 비 알림 (흔들리는 우산)
+      if (selectedWeather === 'rainy') {
+        const rainAlert = document.createElement('div');
+        rainAlert.className = 'alert-card alert-rain';
+        rainAlert.innerHTML = `
+          <span class="shaking-umbrella">☂️</span>
+          <span>오늘은 비 소식이 있어요! <strong>우산</strong>과 방수 신발을 잊지 마세요.</span>
+        `;
+        alertsArea.appendChild(rainAlert);
+      } else if (selectedWeather === 'snowy') {
+        const snowAlert = document.createElement('div');
+        snowAlert.className = 'alert-card alert-rain';
+        snowAlert.innerHTML = `
+          <span>☃️</span>
+          <span>눈이 내리는 날이에요! <strong>방한 장갑·미끄럼 방지 신발</strong>을 챙겨주세요.</span>
+        `;
+        alertsArea.appendChild(snowAlert);
+      }
+
+      // 2. 추천 옷차림 카드 갱신
+      const outfit = getOutfitByTemp(avgTemp);
+      document.getElementById('avgBadge').innerText = `평균 ${avgTemp.toFixed(1)}°C (${outfit.range})`;
+
+      const cardsGrid = document.getElementById('cardsGrid');
+      cardsGrid.innerHTML = `
+        <div class="outfit-card">
+          <div class="card-top">
+            <span class="card-emoji">${outfit.top.emoji}</span>
+            <span class="card-category">상의 (Top)</span>
+          </div>
+          <div class="card-items">${outfit.top.name}</div>
+          <div class="card-desc">${outfit.top.desc}</div>
+        </div>
+
+        <div class="outfit-card">
+          <div class="card-top">
+            <span class="card-emoji">${outfit.bottom.emoji}</span>
+            <span class="card-category">하의 (Bottom)</span>
+          </div>
+          <div class="card-items">${outfit.bottom.name}</div>
+          <div class="card-desc">${outfit.bottom.desc}</div>
+        </div>
+
+        <div class="outfit-card">
+          <div class="card-top">
+            <span class="card-emoji">${outfit.outer.emoji}</span>
+            <span class="card-category">겉옷 (Outer)</span>
+          </div>
+          <div class="card-items">${outfit.outer.name}</div>
+          <div class="card-desc">${outfit.outer.desc}</div>
+        </div>
+
+        <div class="outfit-card">
+          <div class="card-top">
+            <span class="card-emoji">${outfit.shoes.emoji}</span>
+            <span class="card-category">신발 (Shoes)</span>
+          </div>
+          <div class="card-items">${outfit.shoes.name}</div>
+          <div class="card-desc">${outfit.shoes.desc}</div>
+        </div>
+      `;
+    }
+
+    // 초기 실행
+    updateBackground(selectedWeather);
+    generateRecommendation();
+  </script>
+</body>
+</html>
